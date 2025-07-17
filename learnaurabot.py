@@ -8,6 +8,18 @@ from telegram.ext import (
     ApplicationBuilder, CommandHandler, MessageHandler,
     ContextTypes, filters
 )
+from flask import Flask
+import threading
+
+app_flask = Flask(__name__)
+
+@app_flask.route('/')
+def keep_alive():
+    return "LearnauraBot is running!", 200
+
+def run_ping_server():
+    app_flask.run(host="0.0.0.0", port=8080)
+
 
 import google.generativeai as genai
 import requests
@@ -131,12 +143,14 @@ async def handle_file(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # Main bot setup
 if __name__ == "__main__":
-    app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
+    # Start the ping server
+    threading.Thread(target=run_ping_server).start()
 
+    # Start Telegram bot
+    app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("search", web_search))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
     app.add_handler(MessageHandler(filters.Document.ALL, handle_file))
-
-    print("🤖 Learnaurabot (Converter) is running...")
+    print("Bot is running...")
     app.run_polling()
